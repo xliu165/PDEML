@@ -100,5 +100,5 @@ reactionDiffusionProblem = buildModel $ do
   -- First equation    
   (diffU .*. laplacianU .-. u .*. (v .**. realConstantM 2) .+. f .*. (realConstantM 1 .-. u)) `newEq` partialTime u
   -- Second equation
-  (diffV .*. laplacianV .+. u .*. (v .**. realConstantM 2) .-. f .*. (realConstantM 1 .+. k)) `newEq` partialTime u
+  (diffV .*. laplacianV .+. u .*. (v .**. realConstantM 2) .-. f .*. v .*.  (realConstantM 1 .+. k)) `newEq` partialTime u
 
