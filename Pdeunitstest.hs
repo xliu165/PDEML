@@ -111,7 +111,6 @@ uH = (uMole $**$ (-2)) $*$ (uMicroMetre $**$ (6)) $*$ (uSecond $**$ (-1))
 
 reactionmodel = do
   
-  
   --building variables
   u <- U.mkNamedRealVariable uM "u"
   v <- U.mkNamedRealVariable uM "v"
@@ -135,6 +134,7 @@ reactionmodel = do
                              
                              
 testreactionmodel = B.buildModel (U.partialUnitsToCore uSecond uMicroMetre uMicroMetre uMicroMetre reactionmodel)
+
 
 
 

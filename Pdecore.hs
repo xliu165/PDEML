@@ -48,6 +48,9 @@ data RealExpression =
     YSpaceE |
     ZSpaceE |
     
+    -- NEW adding in divergence term
+    Divergence RealExpression |
+    
 -- The derivative of an expression with respect to the bound variable... <-- Added partial derivatives at the bottom 
     Derivative RealExpression |
     

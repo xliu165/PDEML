@@ -138,6 +138,9 @@ data RealExpression =
     YSpaceE |
     ZSpaceE |
     
+    -- NEW*** adding the term divergence to make solving easier
+    Divergence RealExpression |
+    
     Derivative RealExpression |
     -- A common subexpression tagged expression.
     RealCommonSubexpressionE RealCommonSubexpression |
@@ -175,6 +178,9 @@ data RealExpression =
     RealExpressionTag String RealExpression |
     -- Units from one first, value from second...
     UnitsOf RealExpression RealExpression |
+    
+    GetUnits RealExpression |
+    
     UnitsAssertion Units RealExpression |
     
         --PDE support
@@ -476,9 +482,15 @@ translateRealExpression ZSpaceE = do
   bZSpace <- askZUnits    
   return (bZSpace, B.ZSpaceE)  
   
+-- NEW adding a translateRealExpression for divergence  ... units are length ^-1
+translateRealExpression (Divergence (ex)) = do  
+  (u, ex') <- translateRealExpression ex
+  bu <- askXUnits
+  return $ (u `unitsTimes` (bu `unitsPow` (-1)), B.Divergence ex')
   
---need to deal with the derivative expressions
---translateRealExpression (Derivative (ex)) = do
+  
+--need to deal with the derivative expressions  <-------- this is the line with the derivative...
+--translateRealExpression (Derivative (ex)) = do 
 --  (u, ex') <- translateRealExpression ex
 --  bu <- boundUnits
 --  return $ (u `unitsTimes` (bu `unitsPow` (-1)), B.Derivative ex')
@@ -574,6 +586,13 @@ translateRealExpression (UnitsOf r1 r2) = do
   (u, _) <- translateRealExpression r1
   (_, ex) <- translateRealExpression r2
   return (u, ex)
+  
+translateRealExpression (GetUnits u) = do
+  (units, u') <- translateRealExpression u
+  units' <- describeUnits units
+  error $ (showString "Units are ") (show units')
+  return (units, u')
+  
 translateRealExpression (UnitsAssertion uExpect ex) = do
   (uGot, ex') <- translateRealExpression ex
   M.when (uExpect =~/ uGot) $ do
@@ -583,6 +602,8 @@ translateRealExpression (UnitsAssertion uExpect ex) = do
              showString " failed: Expected units " .
              showString uExpects . showString " but got ") uGots
   return (uGot, ex')
+
+translateRealExpression e = error $ "translateRealExpression: Unhandled " ++ (show e)
 
 translateVariable v@(RealVariable _ n) = return $ (v, B.RealVariable n)
 translateSubexpression (FromRealCommonSubexpression rcs) =
@@ -999,6 +1020,12 @@ unitsOfM a = return . UnitsOf a
 unitsOfX :: Monad m => ModelBuilderT m RealExpression -> ModelBuilderT m RealExpression -> ModelBuilderT m RealExpression
 unitsOfX = M.liftM2 UnitsOf
 unitsOf = unitsOfX
+
+getUnitsM :: Monad m => RealExpression -> ModelBuilderT m RealExpression
+getUnitsM a = return (GetUnits a)
+getUnitsX :: Monad m => ModelBuilderT m RealExpression -> ModelBuilderT m RealExpression
+getUnitsX = M.liftM GetUnits
+getUnits a = GetUnits a
 
 unitsAssertionM :: Monad m => Units -> RealExpression -> ModelBuilderT m RealExpression
 unitsAssertionM a = return . UnitsAssertion a
