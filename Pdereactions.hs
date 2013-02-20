@@ -1,3 +1,4 @@
+
 {-# LANGUAGE NoMonomorphismRestriction,DeriveDataTypeable,MultiParamTypeClasses,FunctionalDependencies,FlexibleContexts,FlexibleInstances,TemplateHaskell #-}
 
 {- |
@@ -77,7 +78,7 @@ data Process = Process {
       -}
       entityVariables :: M.Map U.RealVariable Entity,
       
-      {- | The stoichiometry of each CompartmentEntity; this consists of a
+      {- | The stoichiometry of each Entity; this consists of a
       multiplier to be applied for each CompartmentEntity when computing
       the flux, and the units of that multiplier. It should be negative for
       reactants, and positive for products.
@@ -258,18 +259,40 @@ singleCoeff (Diffusion x1 x2 x3 y1 y2 y3 z1 z2 z3) = x1
 
 
 
--- This works fine
-diffCoeffMultiply :: Int -> Diffusion -> Partial -> U.RealExpression
-diffCoeffMultiply dimension (Diffusion x1 x2 x3 y1 y2 y3 z1 z2 z3) (Partial x y z)  = case dimension 
-                                                                                     of 1 -> x1 `U.Times` x 
+-- diffCoeffMultiply :: Int -> Diffusion -> Partial -> U.RealExpression
+-- diffCoeffMultiply dimension (Diffusion x1 x2 x3 y1 y2 y3 z1 z2 z3) (Partial x y z)  = case dimension 
+--                                                                                      of 1 -> x1 `U.Times` x 
                                                                                         
-                                                                                        2 -> (x1 `U.Times` x)`U.Plus`(x2 `U.Times` y) `U.Plus` (y1 `U.Times` x)`U.Plus` (y2 `U.Times` y)
+--                                                                                         2 -> (x1 `U.Times` x)`U.Plus`(x2 `U.Times` y) `U.Plus` (y1 `U.Times` x)`U.Plus` (y2 `U.Times` y)
 
 
-                                                                                        3 -> (x1 `U.Times` x)`U.Plus`(x2 `U.Times` y)`U.Plus`(x3 `U.Times` z)`U.Plus`
-                                                                                              (y1 `U.Times` x)`U.Plus`(y2 `U.Times` y)`U.Plus`(y3 `U.Times` z)`U.Plus`
-                                                                                               (z1 `U.Times` x)`U.Plus`(z2 `U.Times` y)`U.Plus`(z3 `U.Times` z)
+--                                                                                         3 -> (x1 `U.Times` x)`U.Plus`(x2 `U.Times` y)`U.Plus`(x3 `U.Times` z)`U.Plus`
+--                                                                                               (y1 `U.Times` x)`U.Plus`(y2 `U.Times` y)`U.Plus`(y3 `U.Times` z)`U.Plus`
+--                                                                                                (z1 `U.Times` x)`U.Plus`(z2 `U.Times` y)`U.Plus`(z3 `U.Times` z)
+--                                                                                         e -> error $ "invalid dimension of diffusion. You entered: " ++ (show e) ++ ". Please choose 1, 2 or 3"
+
+
+
+
+
+--divergence + diffCoeffMultiply *NEW*
+divergenceDiffCoeffMultiply :: Int -> Diffusion -> Partial -> U.RealExpression
+divergenceDiffCoeffMultiply dimension (Diffusion x1 x2 x3 y1 y2 y3 z1 z2 z3) (Partial x y z)  = case dimension 
+                                                                                     of 1 -> U.PartialSpaceX (x1 `U.Times` x) 
+                                                                                        
+                                                                                        2 -> U.PartialSpaceX (x1 `U.Times` x) `U.Plus` U.PartialSpaceY (x2 `U.Times` y) `U.Plus` 
+                                                                                              U.PartialSpaceX (y1 `U.Times` x) `U.Plus` U.PartialSpaceY (y2 `U.Times` y)
+
+
+                                                                                        3 -> U.PartialSpaceX (x1 `U.Times` x) `U.Plus` U.PartialSpaceY (x2 `U.Times` y)`U.Plus`
+                                                                                              U.PartialSpaceZ (x3 `U.Times` z) `U.Plus` U.PartialSpaceX (y1 `U.Times` x) `U.Plus` 
+                                                                                               U.PartialSpaceY (y2 `U.Times` y) `U.Plus` U.PartialSpaceZ (y3 `U.Times` z)`U.Plus` 
+                                                                                                U.PartialSpaceX (z1 `U.Times` x) `U.Plus` U.PartialSpaceY (z2 `U.Times` y)`U.Plus`
+                                                                                                 U.PartialSpaceZ (z3 `U.Times` z)
                                                                                         e -> error $ "invalid dimension of diffusion. You entered: " ++ (show e) ++ ". Please choose 1, 2 or 3"
+
+
+
 
 
 
@@ -358,7 +381,7 @@ reactionModelToUnits dimension m = do
               --let divinput =  U.unitsAssertionM  ( U.askXUnits `U.unitsTimes` (U.askTimeUnits `U.unitsPow` (-1)) (diffCoeffMultiply dimension coefficient (grad vex))            
               --(U.PartialTime vex) `U.newEqM` ( (U.Divergence divinput)  `U.Plus` rate) 
               --(U.PartialTime vex) `U.newEqM` ( (U.getUnits (diffCoeffMultiply dimension coefficient (grad vex))) `U.Plus` rate) 
-              (U.PartialTime vex) `U.newEqM`  ((U.Divergence (diffCoeffMultiply dimension coefficient (grad vex))) `U.Plus` rate)
+              (U.PartialTime vex) `U.newEqM`  ((divergenceDiffCoeffMultiply dimension coefficient (grad vex)) `U.Plus` rate)
              -- let lSqPerT = (U.askXUnits `U.unitsPowX` 2) `U.unitsTimesX` (U.askTimeUnits `U.unitsPowX` (-1)) 
               
               --S.modify $ \m->m{entityInstances EntityFromProcess _ _ coeff = M.insert e' ei' (entityInstances m)}

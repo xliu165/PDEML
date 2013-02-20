@@ -101,7 +101,7 @@ class (Ord a) => CommonSubexpression a
   where
     commonSubexpressionId :: a -> Int
 
---Int refers to the ID of the common subexpression
+
 data RealCommonSubexpression = RealCommonSubexpression Int RealExpression deriving (Eq, Ord, D.Typeable, D.Data, Show)
 instance CommonSubexpression RealCommonSubexpression
   where
